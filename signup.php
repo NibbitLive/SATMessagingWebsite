@@ -1,6 +1,10 @@
 <?php
 session_start();
+
+$error = isset($_GET['error']);
+
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -60,6 +64,22 @@ session_start();
         .position-relative {
             position: relative;
         }
+        
+        /* Shake animation for error box */
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            50% { transform: translateX(10px); }
+            75% { transform: translateX(-10px); }
+            100% { transform: translateX(0); }
+        }
+
+        /* Custom error box styles */
+        .alert-custom {
+            background-color:rgb(255, 136, 0); /* Orange */
+            color: white;
+            animation: shake 0.5s ease-in-out; /* Apply shake animation */
+        }
     </style>
 </head>
 <body>
@@ -72,6 +92,12 @@ session_start();
     </header>
 
     <div class="container col-md-6">
+        <?php if ($error): ?>
+            <div id="error-message" class="alert alert-custom mb-4">
+                🚫 Oops! Username already taken. Please try again.
+            </div>
+        <?php endif; ?>
+
         <form action="signup_process.php" method="POST">
             <div class="form-group">
                 <label for="username">Username</label>
@@ -127,6 +153,17 @@ session_start();
                 eyeCross.style.display = 'none';
             }
         }
+        
+        // Hide error on input
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const errorMessage = document.getElementById('error-message');
+
+        [usernameInput, passwordInput].forEach(input => {
+            input.addEventListener('input', () => {
+                if (errorMessage) errorMessage.style.display = 'none';
+            });
+        });
     </script>
 
 </body>

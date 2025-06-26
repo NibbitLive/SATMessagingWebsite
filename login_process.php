@@ -5,42 +5,52 @@ include('db_connection.php');
 $username = $_POST['username'];
 $password = $_POST['password'];
 
-// Query to check if the user exists and is not banned
-$query = "SELECT * FROM users WHERE username = ? AND password = ? AND banned = 0";
+// Query to get the user by username
+$query = "SELECT * FROM users WHERE username = ?";
 $stmt = $conn->prepare($query);
-$stmt->bind_param('ss', $username, $password);
+
+if ($stmt === false) {
+	die("Prepare failed: " . $conn->error);
+}
+
+$stmt->bind_param('s', $username);
 $stmt->execute();
 $result = $stmt->get_result();
 
 if ($result->num_rows > 0) {
-	// User found and not banned: Log the user in
-	$_SESSION['username'] = $username;
-	header("Location: index.php");
-	exit;
-} else {
-	// Failed login or banned user — redirect with an error message
-	// Check if the user exists but is banned
-	$query = "SELECT * FROM users WHERE username = ? AND password = ?";
-	$stmt = $conn->prepare($query);
-	$stmt->bind_param('ss', $username, $password);
-	$stmt->execute();
-	$result = $stmt->get_result();
+	$user = $result->fetch_assoc();
 
-	if ($result->num_rows > 0) {
-		// User exists but is banned
+	// Check if the account is banned
+	if (isset($user['banned']) && $user['banned'] == 1) {
 		echo "Your account is banned. Please contact support.";
-	} else {
-		// Failed login — return to login.php with original values
-		echo '
-			<form id="redirectForm" action="login.php?error=1" method="post">
-				<input type="hidden" name="username" value="' . htmlspecialchars($username) . '">
-				<input type="hidden" name="password" value="' . htmlspecialchars($password) . '">
-			</form>
-			<script>
-				document.getElementById("redirectForm").submit();
-			</script>
-		';
+		exit;
 	}
+
+	// Verify the password hash
+	if (password_verify($password, $user['password'])) {
+		// Password correct — log user in
+		$_SESSION['username'] = $username;
+		header("Location: index.php");
+		exit;
+	} else {
+		// Wrong password
+		loginRedirectWithError($username, $password);
+	}
+} else {
+	// Username not found
+	loginRedirectWithError($username, $password);
+}
+
+function loginRedirectWithError($username, $password) {
+	echo '
+		<form id="redirectForm" action="login.php?error=1" method="post">
+			<input type="hidden" name="username" value="' . htmlspecialchars($username) . '">
+			<input type="hidden" name="password" value="' . htmlspecialchars($password) . '">
+		</form>
+		<script>
+			document.getElementById("redirectForm").submit();
+		</script>
+	';
 	exit;
 }
 ?>
